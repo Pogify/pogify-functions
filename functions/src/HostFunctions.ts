@@ -1,0 +1,145 @@
+import * as functions from "firebase-functions";
+import * as admin from "firebase-admin";
+import axios from "axios";
+import * as jwt from "jsonwebtoken";
+import { customAlphabet } from "nanoid";
+import { validateBody } from "./ValidateBody";
+// let credentials = require("./functions/pogify-database-aa54bd143a77.json");
+admin.initializeApp();
+
+const __SECRET = functions.config().jwt.secret;
+export const startSession = functions.https.onRequest(async (req, res) => {
+  // if incoming request is not json: reject
+  if (req.get("content-type") !== "application/json") {
+    res.sendStatus(415);
+    return;
+  }
+
+  // if incoming request is not POST: reject
+  if (req.method !== "POST") {
+    res.sendStatus(405);
+    return;
+  }
+
+  // generate session code and check for duplicates
+  let sessionCode = "test123";
+  while (true) {
+    sessionCode = customAlphabet("abcdefghijklmnopqrstuwxyz0123456789-", 5)();
+
+    // check if session exists
+    try {
+      break;
+    } catch (e) {
+      // if exists generate new code and check again
+    }
+  }
+
+  // sign jwt, ttl: 30 min
+  let token = jwt.sign(
+    {
+      session: sessionCode,
+    },
+    __SECRET,
+    {
+      expiresIn: "30m",
+      subject: "session",
+    }
+  );
+  try {
+    // validate body of initial post
+    let payload = validateBody(req.body);
+
+    // set and forget for now
+    axios.post(
+      "http://161.35.120.197/pub?id=" + sessionCode,
+      JSON.stringify(payload)
+    );
+    // TODO: should implement a second function that deals with pub to nginx (retries and stuff like that)
+    // dont want to slow down the request response just because a network call is slow
+
+    // return token, session code and expireAt in seconds
+    res.status(201).send({
+      token,
+      session: sessionCode,
+      expiresIn: 30 * 60,
+    });
+  } catch (reason) {
+    // error on body validation
+    res.status(400).send(reason);
+  }
+});
+
+export const postUpdate = functions.https.onRequest(async (req, res) => {
+  // reject if no authorization
+  if (!req.headers.authorization) {
+    res.sendStatus(401);
+    return;
+  }
+
+  try {
+    // verify jwt
+    let jwtPayload = jwt.verify(
+      req.headers.authorization.replace(/bearer /i, ""),
+      __SECRET
+    ) as { session: string };
+
+    try {
+      // validate body
+      let payload = validateBody(req.body);
+
+      // set and forget for now
+      axios.post(
+        "http://161.35.120.197/pub?id=" + jwtPayload.session,
+        JSON.stringify(payload)
+      );
+      // respond ok
+      res.send(200);
+    } catch (reason) {
+      // reject on malformed body
+      res.status(400).send(reason);
+    }
+  } catch (e) {
+    // reject on bad jwt
+    res.sendStatus(401);
+  }
+});
+
+export const refreshToken = functions.https.onRequest((req, res) => {
+  // reject on no authorization
+  if (!req.headers.authorization) {
+    res.sendStatus(401);
+    return;
+  }
+
+  try {
+    // get old payload
+    let oldPayload = jwt.verify(
+      req.headers.authorization.replace(/bearer /i, ""),
+      __SECRET
+    ) as { exp: number; session: string };
+
+    // check that payload is within refresh window
+    if (oldPayload.exp > Date.now() / 1000 - 30 * 60) {
+      // issue new token
+      const newToken = jwt.sign(
+        {
+          session: oldPayload.session,
+        },
+        __SECRET,
+        {
+          expiresIn: "30m",
+          subject: "session",
+        }
+      );
+
+      // respond with token
+      res.status(200).send(newToken);
+    } else {
+      // reject if outside refresh window
+      res.status(403).send("token exceed refresh window");
+    }
+  } catch (e) {
+    // reject if malformed jwt
+    res.sendStatus(401);
+  }
+});
