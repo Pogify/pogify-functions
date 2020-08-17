@@ -8,6 +8,7 @@ import { validateBody } from "./ValidateBody";
 admin.initializeApp();
 
 const __SECRET = functions.config().jwt.secret;
+const PUBSUB_URL = functions.config().pubsub.url;
 export const startSession = functions.https.onRequest(async (req, res) => {
   // if incoming request is not json: reject
   if (req.get("content-type") !== "application/json") {
@@ -50,10 +51,7 @@ export const startSession = functions.https.onRequest(async (req, res) => {
     let payload = validateBody(req.body);
 
     // set and forget for now
-    axios.post(
-      "http://161.35.120.197/pub?id=" + sessionCode,
-      JSON.stringify(payload)
-    );
+    axios.post(PUBSUB_URL + "/pub?id=" + sessionCode, JSON.stringify(payload));
     // TODO: should implement a second function that deals with pub to nginx (retries and stuff like that)
     // dont want to slow down the request response just because a network call is slow
 
@@ -89,7 +87,7 @@ export const postUpdate = functions.https.onRequest(async (req, res) => {
 
       // set and forget for now
       axios.post(
-        "http://161.35.120.197/pub?id=" + jwtPayload.session,
+        PUBSUB_URL + "/pub?id=" + jwtPayload.session,
         JSON.stringify(payload)
       );
       // respond ok
