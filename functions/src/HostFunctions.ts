@@ -1,5 +1,4 @@
 import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
 import axios from "axios";
 import * as jwt from "jsonwebtoken";
 import { customAlphabet } from "nanoid";
