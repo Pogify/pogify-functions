@@ -174,7 +174,11 @@ export const refreshToken = functions.https.onRequest((req, res) => {
       );
 
       // respond with token
-      res.status(200).send(newToken);
+      res.status(201).send({
+        token: newToken,
+        session: oldPayload.session,
+        expiresIn: 30 * 60,
+      });
     } else {
       // reject if outside refresh window
       res.status(403).send("token exceed refresh window");
