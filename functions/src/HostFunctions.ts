@@ -33,7 +33,11 @@ export const startSession = functions.https.onRequest(async (req, res) => {
   // FIXME: proper cors
   res.set("Access-Control-Allow-Origin", "*");
   // if incoming request is not json: reject
-  if (req.body && req.get("content-type") !== "application/json") {
+  if (
+    req.get("content-type") !== "application/json" &&
+    Object.keys(req.body).length
+  ) {
+    console.log(req.body);
     res.sendStatus(415);
     return;
   }
@@ -70,7 +74,7 @@ export const startSession = functions.https.onRequest(async (req, res) => {
   );
 
   // if an initial post exists, push to pubsub
-  if (req.body) {
+  if (Object.keys(req.body).length) {
     try {
       // validate body of initial post
       const payload = validateBody(req.body);
@@ -90,12 +94,12 @@ export const startSession = functions.https.onRequest(async (req, res) => {
       res.status(400).send(reason);
     }
     // return token, session code and expireAt in seconds
-    res.status(201).send({
-      token,
-      session: sessionCode,
-      expiresIn: 30 * 60,
-    });
   }
+  res.status(201).send({
+    token,
+    session: sessionCode,
+    expiresIn: 30 * 60,
+  });
 });
 
 export const postUpdate = functions.https.onRequest(async (req, res) => {
