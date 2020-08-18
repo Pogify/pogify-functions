@@ -111,10 +111,12 @@ export const postUpdate = functions.https.onRequest(async (req, res) => {
 
   try {
     // verify jwt
-    let jwtPayload = jwt.verify(
+    const jwtPayload = jwt.verify(
       req.headers.authorization.replace(/bearer /i, ""),
       __SECRET
-    ) as { session: string };
+    ) as {
+      session: string;
+    };
 
     try {
       // validate body
@@ -149,10 +151,13 @@ export const refreshToken = functions.https.onRequest((req, res) => {
 
   try {
     // get old payload
-    let oldPayload = jwt.verify(
+    const oldPayload = jwt.verify(
       req.headers.authorization.replace(/bearer /i, ""),
       __SECRET
-    ) as { exp: number; session: string };
+    ) as {
+      exp: number;
+      session: string;
+    };
 
     // check that payload is within refresh window
     if (oldPayload.exp > Date.now() / 1000 - 30 * 60) {
