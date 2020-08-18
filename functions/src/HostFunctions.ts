@@ -127,9 +127,6 @@ export const postUpdate = functions.https.onRequest(async (req, res) => {
             id: jwtPayload.session,
           },
         })
-        .then(() => {
-          res.sendStatus(200);
-        })
         .catch(console.error);
       // respond ok
       res.sendStatus(200);
