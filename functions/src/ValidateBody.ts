@@ -1,7 +1,7 @@
 export function validateBody(body: { [key: string]: any }) {
-  let errArr = [];
+  const errArr = [];
 
-  let { timestamp, uri, position, playing } = body;
+  const { timestamp, uri, position, playing } = body;
 
   if (!timestamp) {
     errArr.push("missing timestamp");
