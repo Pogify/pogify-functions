@@ -11,10 +11,13 @@ export function validateBody(body: { [key: string]: any }) {
     errArr.push("timestamp not in milliseconds");
   }
 
-  if (!uri) {
+  if (uri === undefined) {
     errArr.push("missing uri");
   } else if (typeof uri !== "string") {
     errArr.push("uri is not string");
+  } else if (uri === "") {
+    // do nothing if its an empty string
+    // empty string indicates disconnected host
   } else if (!uri.startsWith("spotify:track:")) {
     errArr.push("improper uri format");
   }
