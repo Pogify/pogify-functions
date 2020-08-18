@@ -8,6 +8,8 @@ import fastJson from "fast-json-stringify";
 
 const __SECRET = functions.config().jwt.secret;
 const PUBSUB_URL = functions.config().pubsub.url;
+
+const nanoid = customAlphabet("abcdefghijklmnopqrstuwxyz0123456789-", 5);
 const payloadStringify = fastJson({
   title: "pubmessage",
   type: "object",
@@ -42,7 +44,7 @@ export const startSession = functions.https.onRequest(async (req, res) => {
   // generate session code and check for duplicates
   let sessionCode = "test123";
   while (true) {
-    sessionCode = customAlphabet("abcdefghijklmnopqrstuwxyz0123456789-", 5)();
+    sessionCode = nanoid();
 
     // check if session exists
     try {
