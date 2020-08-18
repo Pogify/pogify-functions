@@ -117,6 +117,15 @@ export const postUpdate = functions.https.onRequest(async (req, res) => {
     return;
   }
 
+  // reject if not json
+  if (req.headers["content-type"] !== "application/json") {
+    res.sendStatus(415);
+    return;
+  }
+
+  if (Object.keys(req.body).length === 0 && req.body.constructor === Object) {
+    res.status(400).send("empty body");
+  }
   try {
     // verify jwt
     const jwtPayload = jwt.verify(
