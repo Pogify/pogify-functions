@@ -103,6 +103,12 @@ export const postUpdate = functions.https.onRequest(async (req, res) => {
     return;
   }
 
+  // reject if not post
+  if (req.method !== "POST") {
+    res.sendStatus(405);
+    return;
+  }
+
   try {
     // verify jwt
     let jwtPayload = jwt.verify(
