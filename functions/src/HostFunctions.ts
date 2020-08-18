@@ -28,6 +28,7 @@ const payloadStringify = fastJson({
     },
   },
 });
+
 export const startSession = functions.https.onRequest(async (req, res) => {
   // if incoming request is not json: reject
   if (req.get("content-type") !== "application/json") {
@@ -65,9 +66,12 @@ export const startSession = functions.https.onRequest(async (req, res) => {
       subject: "session",
     }
   );
-  try {
-    // validate body of initial post
-    let payload = validateBody(req.body);
+
+  // if an initial post exists, push to pubsub
+  if (req.body) {
+    try {
+      // validate body of initial post
+      const payload = validateBody(req.body);
 
       // set and forget for now
       axios
@@ -79,15 +83,16 @@ export const startSession = functions.https.onRequest(async (req, res) => {
         .catch(console.error);
       // TODO: should implement a second function that deals with pub to nginx (retries and stuff like that)
       // dont want to slow down the request response just because a network call is slow
+    } catch (reason) {
+      // error on body validation
+      res.status(400).send(reason);
+    }
     // return token, session code and expireAt in seconds
     res.status(201).send({
       token,
       session: sessionCode,
       expiresIn: 30 * 60,
     });
-  } catch (reason) {
-    // error on body validation
-    res.status(400).send(reason);
   }
 });
 
