@@ -32,6 +32,8 @@ const payloadStringify = fastJson({
 export const startSession = functions.https.onRequest(async (req, res) => {
   // FIXME: proper cors
   res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
   // if incoming request is not json: reject
   if (
     req.get("content-type") !== "application/json" &&
@@ -105,6 +107,7 @@ export const startSession = functions.https.onRequest(async (req, res) => {
 export const postUpdate = functions.https.onRequest(async (req, res) => {
   // FIXME: proper cors
   res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   if (req.method === "OPTIONS") {
     res.sendStatus(200);
@@ -168,6 +171,7 @@ export const postUpdate = functions.https.onRequest(async (req, res) => {
 export const refreshToken = functions.https.onRequest((req, res) => {
   // FIXME: proper cors
   res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   // send 200 on OPTION
   if (req.method === "OPTIONS") {
