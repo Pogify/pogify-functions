@@ -105,6 +105,12 @@ export const startSession = functions.https.onRequest(async (req, res) => {
 export const postUpdate = functions.https.onRequest(async (req, res) => {
   // FIXME: proper cors
   res.set("Access-Control-Allow-Origin", "*");
+
+  if (req.method === "OPTIONS") {
+    res.sendStatus(200);
+    return;
+  }
+
   // reject if no authorization
   if (!req.headers.authorization) {
     res.sendStatus(401);
@@ -162,6 +168,13 @@ export const postUpdate = functions.https.onRequest(async (req, res) => {
 export const refreshToken = functions.https.onRequest((req, res) => {
   // FIXME: proper cors
   res.set("Access-Control-Allow-Origin", "*");
+
+  // send 200 on OPTION
+  if (req.method === "OPTIONS") {
+    res.sendStatus(200);
+    return;
+  }
+
   // reject on no authorization
   if (!req.headers.authorization) {
     res.sendStatus(401);
