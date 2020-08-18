@@ -4,11 +4,29 @@ import axios from "axios";
 import * as jwt from "jsonwebtoken";
 import { customAlphabet } from "nanoid";
 import { validateBody } from "./ValidateBody";
+import fastJson from "fast-json-stringify";
 // let credentials = require("./functions/pogify-database-aa54bd143a77.json");
-admin.initializeApp();
 
 const __SECRET = functions.config().jwt.secret;
 const PUBSUB_URL = functions.config().pubsub.url;
+const payloadStringify = fastJson({
+  title: "pubmessage",
+  type: "object",
+  properties: {
+    timestamp: {
+      type: "number",
+    },
+    uri: {
+      type: "string",
+    },
+    position: {
+      type: "number",
+    },
+    playing: {
+      type: "boolean",
+    },
+  },
+});
 export const startSession = functions.https.onRequest(async (req, res) => {
   // if incoming request is not json: reject
   if (req.get("content-type") !== "application/json") {
@@ -36,7 +54,7 @@ export const startSession = functions.https.onRequest(async (req, res) => {
   }
 
   // sign jwt, ttl: 30 min
-  let token = jwt.sign(
+  const token = jwt.sign(
     {
       session: sessionCode,
     },
@@ -50,11 +68,16 @@ export const startSession = functions.https.onRequest(async (req, res) => {
     // validate body of initial post
     let payload = validateBody(req.body);
 
-    // set and forget for now
-    axios.post(PUBSUB_URL + "/pub?id=" + sessionCode, JSON.stringify(payload));
-    // TODO: should implement a second function that deals with pub to nginx (retries and stuff like that)
-    // dont want to slow down the request response just because a network call is slow
-
+      // set and forget for now
+      axios
+        .post(PUBSUB_URL + "/pub", payloadStringify(payload), {
+          params: {
+            id: sessionCode,
+          },
+        })
+        .catch(console.error);
+      // TODO: should implement a second function that deals with pub to nginx (retries and stuff like that)
+      // dont want to slow down the request response just because a network call is slow
     // return token, session code and expireAt in seconds
     res.status(201).send({
       token,
@@ -83,15 +106,21 @@ export const postUpdate = functions.https.onRequest(async (req, res) => {
 
     try {
       // validate body
-      let payload = validateBody(req.body);
+      const payload = validateBody(req.body);
 
       // set and forget for now
-      axios.post(
-        PUBSUB_URL + "/pub?id=" + jwtPayload.session,
-        JSON.stringify(payload)
-      );
+      axios
+        .post(PUBSUB_URL + "/pub", payloadStringify(payload), {
+          params: {
+            id: jwtPayload.session,
+          },
+        })
+        .then(() => {
+          res.sendStatus(200);
+        })
+        .catch(console.error);
       // respond ok
-      res.send(200);
+      res.sendStatus(200);
     } catch (reason) {
       // reject on malformed body
       res.status(400).send(reason);
