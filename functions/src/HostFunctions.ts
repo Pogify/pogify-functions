@@ -33,7 +33,7 @@ export const startSession = functions.https.onRequest(async (req, res) => {
   // FIXME: proper cors
   res.set("Access-Control-Allow-Origin", "*");
   // if incoming request is not json: reject
-  if (req.get("content-type") !== "application/json") {
+  if (req.body && req.get("content-type") !== "application/json") {
     res.sendStatus(415);
     return;
   }
