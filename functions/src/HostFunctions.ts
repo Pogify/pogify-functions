@@ -8,6 +8,7 @@ import fastJson from "fast-json-stringify";
 
 const __SECRET = functions.config().jwt.secret;
 const PUBSUB_URL = functions.config().pubsub.url;
+const PUBSUB_SECRET = functions.config().pubsub.secret;
 
 const nanoid = customAlphabet("abcdefghijklmnopqrstuwxyz0123456789-", 5);
 const payloadStringify = fastJson({
@@ -39,7 +40,6 @@ export const startSession = functions.https.onRequest(async (req, res) => {
     req.get("content-type") !== "application/json" &&
     Object.keys(req.body).length
   ) {
-    console.log(req.body);
     res.sendStatus(415);
     return;
   }
@@ -81,9 +81,12 @@ export const startSession = functions.https.onRequest(async (req, res) => {
       // validate body of initial post
       const payload = validateBody(req.body);
 
-      // set and forget for now
+      // FIXME: set and forget for now
       axios
         .post(PUBSUB_URL + "/pub", payloadStringify(payload), {
+          headers: {
+            Authorization: PUBSUB_SECRET,
+          },
           params: {
             id: sessionCode,
           },
@@ -148,9 +151,12 @@ export const postUpdate = functions.https.onRequest(async (req, res) => {
       // validate body
       const payload = validateBody(req.body);
 
-      // set and forget for now
+      // FIXME: set and forget for now
       axios
         .post(PUBSUB_URL + "/pub", payloadStringify(payload), {
+          headers: {
+            Authorization: PUBSUB_SECRET,
+          },
           params: {
             id: jwtPayload.session,
           },
