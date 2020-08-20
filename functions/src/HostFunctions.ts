@@ -141,7 +141,7 @@ export const postUpdate = functions.https.onRequest(async (req, res) => {
   try {
     // verify jwt
     const jwtPayload = jwt.verify(
-      req.headers.authorization.replace(/bearer /i, ""),
+      (req.headers["x-session-token"] as string),
       __SECRET
     ) as {
       session: string;
@@ -194,7 +194,7 @@ export const refreshToken = functions.https.onRequest((req, res) => {
   try {
     // get old payload
     const oldPayload = jwt.verify(
-      req.headers.authorization.replace(/bearer /i, ""),
+      (req.headers["x-session-token"] as string),
       __SECRET
     ) as {
       exp: number;
