@@ -226,7 +226,7 @@ export const refreshToken = functions.https.onRequest((req, res) => {
       res.status(403).send("token exceed refresh window");
     }
   } catch (e) {
-    // reject if malformed jwt
+    // reject if malformed, or expired jwt
     res.sendStatus(401);
   }
 });
