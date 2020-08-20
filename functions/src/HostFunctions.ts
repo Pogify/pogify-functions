@@ -1,10 +1,13 @@
 import * as functions from "firebase-functions";
+import * as admin from "firebase-admin";
+admin.initializeApp();
+
 import axios from "axios";
 import * as jwt from "jsonwebtoken";
 import { customAlphabet } from "nanoid";
 import { validateBody } from "./ValidateBody";
 import fastJson from "fast-json-stringify";
-// let credentials = require("./functions/pogify-database-aa54bd143a77.json");
+import { RateLimit } from "./RateLimiter";
 
 const __SECRET = functions.config().jwt.secret;
 const PUBSUB_URL = functions.config().pubsub.url;
@@ -30,14 +33,19 @@ const payloadStringify = fastJson({
   },
 });
 
+const auth = admin.auth();
+
 export const startSession = functions.https.onRequest(async (req, res) => {
   // FIXME: proper cors
   res.set("Access-Control-Allow-Origin", "*");
-  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.set(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-Session-Token"
+  );
 
   // if incoming request is not json: reject
   if (
-    req.get("content-type") !== "application/json" &&
+    !req.get("content-type")?.match(/application\/json/) &&
     Object.keys(req.body).length
   ) {
     res.sendStatus(415);
@@ -45,9 +53,39 @@ export const startSession = functions.https.onRequest(async (req, res) => {
   }
 
   // if incoming request is not POST: reject
+  // if incoming request is OPTIONS
+  if (req.method === "OPTIONS") {
+    res.sendStatus(200);
+    return;
+  }
   if (req.method !== "POST") {
     res.sendStatus(405);
     return;
+  }
+
+  // validate auth
+  if (!req.headers.authorization) {
+    res.sendStatus(401);
+    return;
+  } else {
+    let user: admin.auth.DecodedIdToken;
+    try {
+      user = await auth.verifyIdToken(
+        req.headers.authorization.split("Bearer ")[1]
+      );
+    } catch (e) {
+      console.log(e);
+      res.sendStatus(401);
+      return;
+    }
+    try {
+      await RateLimit(user.uid);
+    } catch (e) {
+      if (e === "too many calls") {
+        res.sendStatus(429);
+        return;
+      }
+    }
   }
 
   // generate session code and check for duplicates
@@ -110,16 +148,43 @@ export const startSession = functions.https.onRequest(async (req, res) => {
 export const postUpdate = functions.https.onRequest(async (req, res) => {
   // FIXME: proper cors
   res.set("Access-Control-Allow-Origin", "*");
-  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.set(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-Session-Token"
+  );
 
   if (req.method === "OPTIONS") {
     res.sendStatus(200);
     return;
   }
 
-  // reject if no authorization
+  // validate auth
   if (!req.headers.authorization) {
     res.sendStatus(401);
+    return;
+  } else {
+    let user: admin.auth.DecodedIdToken;
+    try {
+      user = await auth.verifyIdToken(
+        req.headers.authorization.split("Bearer ")[1]
+      );
+    } catch (e) {
+      res.sendStatus(401);
+      return;
+    }
+    try {
+      await RateLimit(user.uid);
+    } catch (e) {
+      if (e === "too many calls") {
+        res.sendStatus(429);
+        return;
+      }
+    }
+  }
+
+  // reject on no session token
+  if (!req.headers["x-session-token"]) {
+    res.sendStatus(403);
     return;
   }
 
@@ -141,7 +206,7 @@ export const postUpdate = functions.https.onRequest(async (req, res) => {
   try {
     // verify jwt
     const jwtPayload = jwt.verify(
-      (req.headers["x-session-token"] as string),
+      req.headers["x-session-token"] as string,
       __SECRET
     ) as {
       session: string;
@@ -174,10 +239,13 @@ export const postUpdate = functions.https.onRequest(async (req, res) => {
   }
 });
 
-export const refreshToken = functions.https.onRequest((req, res) => {
+export const refreshToken = functions.https.onRequest(async (req, res) => {
   // FIXME: proper cors
   res.set("Access-Control-Allow-Origin", "*");
-  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.set(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization,X-Session-Token"
+  );
 
   // send 200 on OPTION
   if (req.method === "OPTIONS") {
@@ -185,16 +253,43 @@ export const refreshToken = functions.https.onRequest((req, res) => {
     return;
   }
 
-  // reject on no authorization
+  // validate auth
   if (!req.headers.authorization) {
+    // if no authorization reject
     res.sendStatus(401);
+  } else {
+    let user: admin.auth.DecodedIdToken;
+    try {
+      // verify the token
+      user = await auth.verifyIdToken(
+        req.headers.authorization.split("Bearer ")[1]
+      );
+    } catch (e) {
+      // fail to verify reject
+      res.sendStatus(401);
+      return;
+    }
+    try {
+      // send uid to rate limiter
+      await RateLimit(user.uid);
+    } catch (e) {
+      if (e === "too many calls") {
+        res.sendStatus(429);
+        return;
+      }
+    }
+  }
+
+  // reject on no session token
+  if (!req.headers["x-session-token"]) {
+    res.sendStatus(403);
     return;
   }
 
   try {
     // get old payload
     const oldPayload = jwt.verify(
-      (req.headers["x-session-token"] as string),
+      req.headers["x-session-token"] as string,
       __SECRET
     ) as {
       exp: number;
