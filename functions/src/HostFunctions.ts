@@ -81,7 +81,8 @@ export const startSession = functions.https.onRequest(async (req, res) => {
     try {
       await RateLimit(user.uid);
     } catch (e) {
-      if (e === "too many calls") {
+      if (e.message === "too many calls") {
+        console.error(e);
         res.sendStatus(429);
         return;
       }
@@ -175,7 +176,8 @@ export const postUpdate = functions.https.onRequest(async (req, res) => {
     try {
       await RateLimit(user.uid);
     } catch (e) {
-      if (e === "too many calls") {
+      if (e.message === "too many calls") {
+        console.error(e);
         res.sendStatus(429);
         return;
       }
@@ -273,7 +275,8 @@ export const refreshToken = functions.https.onRequest(async (req, res) => {
       // send uid to rate limiter
       await RateLimit(user.uid);
     } catch (e) {
-      if (e === "too many calls") {
+      if (e.message === "too many calls") {
+        console.error(e);
         res.sendStatus(429);
         return;
       }

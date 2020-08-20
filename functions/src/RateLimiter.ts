@@ -1,6 +1,6 @@
 import * as admin from "firebase-admin";
 
-let database = admin.database();
+const database = admin.database();
 
 const apiLimits = {
   interval: 5 * 60 * 1000,
@@ -8,13 +8,13 @@ const apiLimits = {
 } as const;
 
 export const RateLimit = async (uid: string) => {
-  let userRef = database.ref("rateLimit");
-  let uidRef = userRef.child(uid);
+  const userRef = database.ref("rateLimit");
+  const uidRef = userRef.child(uid);
   const uidSnap = await uidRef.once("value");
 
   // if the uid resource doesnt exist set and continue
   if (!uidSnap.exists()) {
-    uidRef.set({
+    await uidRef.set({
       timestamp: admin.database.ServerValue.TIMESTAMP,
       count: 1,
     });
@@ -22,7 +22,7 @@ export const RateLimit = async (uid: string) => {
   }
 
   // get timestamp and count from uid snapshot
-  let { timestamp, count } = uidSnap.val() as {
+  const { timestamp, count } = uidSnap.val() as {
     timestamp: number;
     count: number;
   };
@@ -36,7 +36,7 @@ export const RateLimit = async (uid: string) => {
     });
   } else {
     if (count > apiLimits.count) {
-      throw "too many calls";
+      throw new Error("too many calls");
     } else {
       await uidRef.set({
         timestamp,
