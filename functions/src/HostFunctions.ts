@@ -259,6 +259,7 @@ export const refreshToken = functions.https.onRequest(async (req, res) => {
   if (!req.headers.authorization) {
     // if no authorization reject
     res.sendStatus(401);
+    return;
   } else {
     let user: admin.auth.DecodedIdToken;
     try {
@@ -293,7 +294,10 @@ export const refreshToken = functions.https.onRequest(async (req, res) => {
     // get old payload
     const oldPayload = jwt.verify(
       req.headers["x-session-token"] as string,
-      __SECRET
+      __SECRET,
+      {
+        ignoreExpiration: true,
+      }
     ) as {
       exp: number;
       session: string;
