@@ -64,28 +64,30 @@ export const startSession = functions.https.onRequest(async (req, res) => {
     return;
   }
 
-  // validate auth
-  if (!req.headers.authorization) {
-    res.sendStatus(401);
-    return;
-  } else {
-    let user: admin.auth.DecodedIdToken;
-    try {
-      user = await auth.verifyIdToken(
-        req.headers.authorization.split("Bearer ")[1]
-      );
-    } catch (e) {
-      console.log(e);
+  if (process.env.FUNCTIONS_EMULATOR !== "true") {
+    // validate auth
+    if (!req.headers.authorization) {
       res.sendStatus(401);
       return;
-    }
-    try {
-      await RateLimit(user.uid);
-    } catch (e) {
-      if (e.message === "too many calls") {
-        console.error(e);
-        res.sendStatus(429);
+    } else {
+      let user: admin.auth.DecodedIdToken;
+      try {
+        user = await auth.verifyIdToken(
+          req.headers.authorization.split("Bearer ")[1]
+        );
+      } catch (e) {
+        console.log(e);
+        res.sendStatus(401);
         return;
+      }
+      try {
+        await RateLimit(user.uid);
+      } catch (e) {
+        if (e.message === "too many calls") {
+          console.error(e);
+          res.sendStatus(429);
+          return;
+        }
       }
     }
   }
@@ -100,14 +102,14 @@ export const startSession = functions.https.onRequest(async (req, res) => {
     const codeRef = collRef.child(sessionCode);
     const codeSnap = await codeRef.once("value");
     const timestamp = codeSnap.val();
-
+    console.log(timestamp);
     // if snapshot doesn't return a timestamp session doesn't exist
     // if code snapshot returns a value and that value is older than 65 min then session is stale and can start a new session with the same id
     if (timestamp && Date.now() / 1000 - timestamp > 65 * 60) {
       // set timestamp in db
-      codeRef.set(admin.database.ServerValue.TIMESTAMP);
       continue;
     } else {
+      codeRef.set(admin.database.ServerValue.TIMESTAMP);
       break;
     }
   }
@@ -169,27 +171,30 @@ export const postUpdate = functions.https.onRequest(async (req, res) => {
     return;
   }
 
-  // validate auth
-  if (!req.headers.authorization) {
-    res.sendStatus(401);
-    return;
-  } else {
-    let user: admin.auth.DecodedIdToken;
-    try {
-      user = await auth.verifyIdToken(
-        req.headers.authorization.split("Bearer ")[1]
-      );
-    } catch (e) {
+  // If running dev environment (ie. emulator) ignore auth
+  if (process.env.FUNCTIONS_EMULATOR !== "true") {
+    // validate auth
+    if (!req.headers.authorization) {
       res.sendStatus(401);
       return;
-    }
-    try {
-      await RateLimit(user.uid);
-    } catch (e) {
-      if (e.message === "too many calls") {
-        console.error(e);
-        res.sendStatus(429);
+    } else {
+      let user: admin.auth.DecodedIdToken;
+      try {
+        user = await auth.verifyIdToken(
+          req.headers.authorization.split("Bearer ")[1]
+        );
+      } catch (e) {
+        res.sendStatus(401);
         return;
+      }
+      try {
+        await RateLimit(user.uid);
+      } catch (e) {
+        if (e.message === "too many calls") {
+          console.error(e);
+          res.sendStatus(429);
+          return;
+        }
       }
     }
   }
@@ -265,31 +270,34 @@ export const refreshToken = functions.https.onRequest(async (req, res) => {
     return;
   }
 
-  // validate auth
-  if (!req.headers.authorization) {
-    // if no authorization reject
-    res.sendStatus(401);
-    return;
-  } else {
-    let user: admin.auth.DecodedIdToken;
-    try {
-      // verify the token
-      user = await auth.verifyIdToken(
-        req.headers.authorization.split("Bearer ")[1]
-      );
-    } catch (e) {
-      // fail to verify reject
+  // ignore authentication if in dev env (ie emulator)
+  if (process.env.FUNCTIONS_EMULATOR !== "true") {
+    // validate auth
+    if (!req.headers.authorization) {
+      // if no authorization reject
       res.sendStatus(401);
       return;
-    }
-    try {
-      // send uid to rate limiter
-      await RateLimit(user.uid);
-    } catch (e) {
-      if (e.message === "too many calls") {
-        console.error(e);
-        res.sendStatus(429);
+    } else {
+      let user: admin.auth.DecodedIdToken;
+      try {
+        // verify the token
+        user = await auth.verifyIdToken(
+          req.headers.authorization.split("Bearer ")[1]
+        );
+      } catch (e) {
+        // fail to verify reject
+        res.sendStatus(401);
         return;
+      }
+      try {
+        // send uid to rate limiter
+        await RateLimit(user.uid);
+      } catch (e) {
+        if (e.message === "too many calls") {
+          console.error(e);
+          res.sendStatus(429);
+          return;
+        }
       }
     }
   }
