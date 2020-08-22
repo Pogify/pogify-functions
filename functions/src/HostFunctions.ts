@@ -187,6 +187,11 @@ export const postUpdate = functions.https.onRequest(async (req, res) => {
     res.sendStatus(200);
     return;
   }
+  // reject if not post
+  if (req.method !== "POST") {
+    res.sendStatus(405);
+    return;
+  }
 
   // If running dev environment (ie. emulator) ignore auth
   if (process.env.FUNCTIONS_EMULATOR !== "true") {
@@ -219,12 +224,6 @@ export const postUpdate = functions.https.onRequest(async (req, res) => {
   // reject on no session token
   if (!req.headers["x-session-token"]) {
     res.sendStatus(403);
-    return;
-  }
-
-  // reject if not post
-  if (req.method !== "POST") {
-    res.sendStatus(405);
     return;
   }
 
