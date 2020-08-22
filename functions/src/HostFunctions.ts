@@ -3,16 +3,29 @@ import * as admin from "firebase-admin";
 
 const database = admin.database();
 
-import axios from "axios";
+import axios, { AxiosPromise } from "axios";
 import * as jwt from "jsonwebtoken";
 import { customAlphabet } from "nanoid";
 import { validateBody } from "./ValidateBody";
 import fastJson from "fast-json-stringify";
 import { RateLimit } from "./RateLimiter";
 
-const __SECRET = functions.config().jwt.secret;
-const PUBSUB_URL = functions.config().pubsub.url;
-const PUBSUB_SECRET = functions.config().pubsub.secret;
+let __SECRET = functions.config().jwt.secret;
+let PUBSUB_URL: string, PUBSUB_SECRET: string;
+
+// if running on the emulator ignore pubsub secrets
+if (process.env.FUNCTIONS_EMULATOR !== "true") {
+  PUBSUB_URL = functions.config().pubsub.url;
+  PUBSUB_SECRET = functions.config().pubsub.secret;
+} else {
+  // if in emulator/dev env, dont send any network calls just log config
+  axios.defaults.adapter = (config) => {
+    console.log("Axios Request", config);
+    return Promise.resolve({
+      data: {},
+    } as any) as AxiosPromise;
+  };
+}
 
 const nanoid = customAlphabet("abcdefghijklmnopqrstuwxyz0123456789-", 5);
 const payloadStringify = fastJson({
