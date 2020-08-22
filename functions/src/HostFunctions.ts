@@ -322,7 +322,7 @@ export const refreshToken = functions.https.onRequest(async (req, res) => {
     };
 
     // check that payload is within refresh window
-    if (oldPayload.exp > Date.now() / 1000 - 30 * 60) {
+    if (Date.now() / 1000 - oldPayload.exp < 30 * 60) {
       // issue new token
       const newToken = jwt.sign(
         {
