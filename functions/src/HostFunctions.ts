@@ -77,6 +77,7 @@ export const startSession = functions.https.onRequest(async (req, res) => {
     return;
   }
 
+  // if running emulator ignore auth
   if (process.env.FUNCTIONS_EMULATOR !== "true") {
     // validate auth
     if (!req.headers.authorization) {
@@ -89,7 +90,7 @@ export const startSession = functions.https.onRequest(async (req, res) => {
           req.headers.authorization.split("Bearer ")[1]
         );
       } catch (e) {
-        console.log(e);
+        console.info(e);
         res.sendStatus(401);
         return;
       }
@@ -115,7 +116,6 @@ export const startSession = functions.https.onRequest(async (req, res) => {
     const codeRef = collRef.child(sessionCode);
     const codeSnap = await codeRef.once("value");
     const timestamp = codeSnap.val();
-    console.log(timestamp);
     // if snapshot doesn't return a timestamp session doesn't exist
     // if code snapshot returns a value and that value is older than 65 min then session is stale and can start a new session with the same id
     if (timestamp && Date.now() / 1000 - timestamp > 65 * 60) {
