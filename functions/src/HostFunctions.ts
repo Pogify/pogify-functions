@@ -93,7 +93,7 @@ export const startSession = functions.https.onRequest(async (req, res) => {
   }
 
   // generate session code and check for duplicates
-  let sessionCode = "test123";
+  let sessionCode: string;
   while (true) {
     sessionCode = nanoid();
 
