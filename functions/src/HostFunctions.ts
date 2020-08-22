@@ -1,6 +1,8 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-admin.initializeApp();
+
+const app = admin.initializeApp();
+const database = app.database();
 
 import axios from "axios";
 import * as jwt from "jsonwebtoken";
@@ -95,10 +97,19 @@ export const startSession = functions.https.onRequest(async (req, res) => {
     sessionCode = nanoid();
 
     // check if session exists
-    try {
+    const collRef = database.ref("sessionCodes");
+    const codeRef = collRef.child(sessionCode);
+    const codeSnap = await codeRef.once("value");
+    const timestamp = codeSnap.val();
+
+    // if snapshot doesn't return a timestamp session doesn't exist
+    // if code snapshot returns a value and that value is older than 65 min then session is stale and can start a new session with the same id
+    if (timestamp && Date.now() / 1000 - timestamp > 65 * 60) {
+      // set timestamp in db
+      codeRef.set(admin.database.ServerValue.TIMESTAMP);
+      continue;
+    } else {
       break;
-    } catch (e) {
-      // if exists generate new code and check again
     }
   }
 
@@ -316,6 +327,11 @@ export const refreshToken = functions.https.onRequest(async (req, res) => {
           subject: "session",
         }
       );
+
+      // touch timestamp in session registry
+      const collRef = database.ref("sessionCodes");
+      const codeRef = collRef.child(oldPayload.session);
+      await codeRef.set(admin.database.ServerValue.TIMESTAMP);
 
       // respond with token
       res.status(201).send({
