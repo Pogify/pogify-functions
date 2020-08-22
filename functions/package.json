@@ -12,7 +12,7 @@
   "engines": {
     "node": "10"
   },
-  "main": "lib/index.ts",
+  "main": "lib/index.js",
   "dependencies": {
     "@types/jsonwebtoken": "^8.5.0",
     "axios": "^0.19.2",
