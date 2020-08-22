@@ -34,7 +34,7 @@ This is a stretch goal for this project. We hope to reach enough traffic to warr
 
     - schema:
 
-      ```json
+      ```typescript
       {
         "timestamp": number,
         "uri": string,
