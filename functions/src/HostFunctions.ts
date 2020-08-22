@@ -143,8 +143,7 @@ export const startSession = functions.https.onRequest(async (req, res) => {
           },
         })
         .catch(console.error);
-      // TODO: should implement a second function that deals with pub to nginx (retries and stuff like that)
-      // dont want to slow down the request response just because a network call is slow
+      // TODO: should implement retries and stuff like that
     } catch (reason) {
       // error on body validation
       res.status(400).send(reason);
