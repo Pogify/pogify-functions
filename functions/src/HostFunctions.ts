@@ -354,6 +354,13 @@ export const refreshToken = functions.https.onRequest(async (req, res) => {
       // touch timestamp in session registry
       const collRef = database.ref("sessionCodes");
       const codeRef = collRef.child(oldPayload.session);
+      const codeTime = (await codeRef.once("value")).val();
+
+      // if too early then return too early
+      if (Date.now() - codeTime < 25 * 60 * 1000) {
+        res.status(425);
+        return;
+      }
       await codeRef.set(admin.database.ServerValue.TIMESTAMP);
 
       // respond with token
