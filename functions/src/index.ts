@@ -1,7 +1,5 @@
-// import "firebase-functions";
+import * as admin from "firebase-admin";
+admin.initializeApp();
 
 export * from "./HostFunctions";
-
-// // Start writing Firebase Functions
-// // https://firebase.google.com/docs/functions/typescript
-//
+// export * from "./ScheduledFunctions";

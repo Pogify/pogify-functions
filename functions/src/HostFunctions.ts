@@ -1,8 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 
-const app = admin.initializeApp();
-const database = app.database();
+const database = admin.database();
 
 import axios from "axios";
 import * as jwt from "jsonwebtoken";
