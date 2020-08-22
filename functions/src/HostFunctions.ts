@@ -107,8 +107,13 @@ export const startSession = functions.https.onRequest(async (req, res) => {
     // if code snapshot returns a value and that value is older than 65 min then session is stale and can start a new session with the same id
     if (timestamp && Date.now() / 1000 - timestamp > 65 * 60) {
       // set timestamp in db
+      codeRef.set(admin.database.ServerValue.TIMESTAMP);
+      break;
+    } else if (timestamp) {
+      // if timestamp exists and doesn't meet the stale threshold, generate a new code.
       continue;
     } else {
+      // set timestamp in db if timestamp doesn't exist
       codeRef.set(admin.database.ServerValue.TIMESTAMP);
       break;
     }
