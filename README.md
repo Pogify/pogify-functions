@@ -61,6 +61,7 @@ This is a stretch goal for this project. We hope to reach enough traffic to warr
     - `Authorization`: auth token from firebase auth
     - `X-Session-Token`: token obtained from `startSession`
   - tokens can only be refreshed once every 25 minutes
+  - refreshToken refreshes the session record in the Realtime DB
 
 ### Scheduled Triggers
 
