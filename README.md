@@ -84,6 +84,8 @@ This is a stretch goal for this project. We hope to reach enough traffic to warr
 1. clone this repo: `git clone https://github.com/Pogify/pogify-functions.git`
 1. install the [`firebase-cli`](https://firebase.google.com/docs/cli)
 1. navigate to the functions folder and `npm install`
+1. set env var in .runtimeconfig.json.
+    - set jwt.secret to any string
 1. `firebase --project=fakeproject emulators:start` to start emulators
 1. start developing!
 
