@@ -67,3 +67,6 @@ node_modules/
 .env
 .runtimeconfig.json
 database.rules.json
+
+# vscode
+.vscode
