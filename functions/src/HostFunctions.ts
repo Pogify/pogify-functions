@@ -49,6 +49,30 @@ const payloadStringify = fastJson({
 
 const auth = admin.auth();
 
+// const fetch = require("node-fetch");
+// const twitchAuth = (authToken: string): Promise<string> => {
+//   return new Promise(async (res, rej) => {
+//     const userInfo: any = await fetch(`https://id.twitch.tv/oauth2/userinfo`, {
+//       headers: {
+//         "Authorization": "Bearer " + authToken
+//       }
+//     }).then((v: any) => v.json());
+//     if (userInfo.preferred_username != null) {
+//       res(userInfo.preferred_username);
+//     } else {
+//       rej(userInfo.message);
+//     }
+//   });
+// }
+
+// twitchAuth example:
+// try {
+//   var username: string = await twitchAuth("authentication code from frontend");
+//   // use username as the session code instead of a randomly generated one
+// } catch (e) {
+//   // user could not be authenticated
+// }
+
 export const startSession = functions.https.onRequest(async (req, res) => {
   // FIXME: proper cors
   res.set("Access-Control-Allow-Origin", "*");
@@ -69,7 +93,7 @@ export const startSession = functions.https.onRequest(async (req, res) => {
   // if incoming request is not POST: reject
   // if incoming request is OPTIONS
   if (req.method === "OPTIONS") {
-    res.sendStatus(200);
+    res.sendStatus(400);
     return;
   }
   if (req.method !== "POST") {
