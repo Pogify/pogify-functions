@@ -3,7 +3,7 @@ export function validateBody(body: { [key: string]: any }) {
 
   const { timestamp, uri, position, playing } = body;
 
-  if (!timestamp) {
+  if (timestamp === undefined) {
     errArr.push("missing timestamp");
   } else if (typeof timestamp !== "number") {
     errArr.push("timestamp is not a number");
