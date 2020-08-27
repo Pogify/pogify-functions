@@ -8,7 +8,7 @@ describe("testing for body validation", () => {
     return errorList.join("; ");
   };
   
-  test("should throw missing errors", () => {
+  test("should throw error if body content is missing", () => {
     errorMessage = createErrorMessage([
       "missing timestamp",
       "missing uri",
@@ -19,7 +19,7 @@ describe("testing for body validation", () => {
     expect(() => { validateBody(invalidBody); }).toThrow(errorMessage);
   })
 
-  test("should throw type errors", () => {
+  test("should throw error if body has incorrect types", () => {
     invalidBody = {
       timestamp: "not a number",
       uri: 1000,
@@ -36,4 +36,6 @@ describe("testing for body validation", () => {
 
     expect(() => { validateBody(invalidBody); }).toThrow(errorMessage);
   })
+
+
 })
