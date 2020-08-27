@@ -37,5 +37,16 @@ describe("testing for body validation", () => {
     expect(() => { validateBody(invalidBody); }).toThrow(errorMessage);
   })
 
+  test("should throw error if timestamp is 0", () => {
+    expect.assertions(2);
+    
+    invalidBody = {
+      timestamp: 0,
+      uri: "spotify:track:6sFIWsNpZYqfjUpaCgueju",
+      position: 0,
+      playing: true,
+    };
 
+    expect(() => { validateBody(invalidBody); }).toThrow("timestamp not in milliseconds");
+  });
 })
