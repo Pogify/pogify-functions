@@ -1,7 +1,13 @@
 import { validateBody } from "./ValidateBody";
 
 describe("testing for body validation", () => {
-  let invalidBody: object = {};
+  let invalidBody: { [key: string]: any } = {
+    timestamp: undefined,
+    invalidBody: undefined,
+    position: undefined,
+    playing: undefined,
+  };
+
   let errorMessage: string = "";
 
   const createErrorMessage = (errorList: string[]) => {
@@ -16,6 +22,8 @@ describe("testing for body validation", () => {
       "missing playing state"
     ]);
     
+    const { uri } = invalidBody;
+    console.log(uri);
     expect(() => { validateBody(invalidBody); }).toThrow(errorMessage);
   })
 
@@ -37,15 +45,17 @@ describe("testing for body validation", () => {
     expect(() => { validateBody(invalidBody); }).toThrow(errorMessage);
   })
 
-  test("should throw error if timestamp is 0", () => {
-    expect.assertions(2);
-    
+  test("should throw error if timestamp isn't in milliseconds", () => {
     invalidBody = {
       timestamp: 0,
       uri: "spotify:track:6sFIWsNpZYqfjUpaCgueju",
       position: 0,
       playing: true,
     };
+
+    expect(() => { validateBody(invalidBody); }).toThrow("timestamp not in milliseconds");
+
+    invalidBody.timestamp = 9000;
 
     expect(() => { validateBody(invalidBody); }).toThrow("timestamp not in milliseconds");
   });
