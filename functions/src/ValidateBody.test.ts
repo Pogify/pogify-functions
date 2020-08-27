@@ -71,10 +71,26 @@ describe("testing for body validation", () => {
   // testing for positive results
   let validBody: { [key: string]: any };
 
-  test("should return same values as input object if uri is an empty string", () => {
+  test("should return same values as body if disconnected host", () => {
     validBody = {
       timestamp: 2597625975267,
       uri: "",
+      position: 0,
+      playing: true,
+    }
+
+    const valided = validateBody(validBody);
+
+    expect(valided.timestamp).toBe(validBody.timestamp);
+    expect(valided.uri).toBe(validBody.uri);
+    expect(valided.position).toBe(validBody.position);
+    expect(valided.playing).toBe(validBody.playing);
+  })
+
+  test("should return same values as body if all values are valid", () => {
+    validBody = {
+      timestamp: 2597625975267,
+      uri: "spotify:track:6sFIWsNpZYqfjUpaCgueju",
       position: 0,
       playing: true,
     }
