@@ -1,6 +1,7 @@
 import { validateBody } from "./ValidateBody";
 
 describe("testing for body validation", () => {
+  // testing for negative results
   let invalidBody: { [key: string]: any };
   let errorMessage: string = "";
   
@@ -58,7 +59,7 @@ describe("testing for body validation", () => {
 
   test("should throw error if improper uri format", () => {
     invalidBody = {
-      timestamp: 0,
+      timestamp: 2597625975267,
       uri: "invalid uri",
       position: 0,
       playing: true,
@@ -66,4 +67,23 @@ describe("testing for body validation", () => {
 
     expect(() => { validateBody(invalidBody); }).toThrow("improper uri format");
   });
+
+  // testing for positive results
+  let validBody: { [key: string]: any };
+
+  test("should return same values as input object if uri is an empty string", () => {
+    validBody = {
+      timestamp: 2597625975267,
+      uri: "",
+      position: 0,
+      playing: true,
+    }
+
+    const valided = validateBody(validBody);
+
+    expect(valided.timestamp).toBe(validBody.timestamp);
+    expect(valided.uri).toBe(validBody.uri);
+    expect(valided.position).toBe(validBody.position);
+    expect(valided.playing).toBe(validBody.playing);
+  })
 })
