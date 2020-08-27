@@ -3,28 +3,25 @@ import { validateBody } from "./ValidateBody";
 describe("testing for body validation", () => {
   let invalidBody: { [key: string]: any };
   let errorMessage: string = "";
-
-  const createErrorMessage = (errorList: string[]) => {
-    return errorList.join("; ");
-  };
   
   test("should throw appropriate missing errors", () => {
     /*
       the body will never look like this,
       but validateBody is only ever used when the body isn't empty,
-      so have to account for that by testing a non-empty object with relevant values missing
+      so have to account for that by testing a non-empty object with relevant values missing;
+      will run into destructuring issues if not
     */
     invalidBody = { missing: null}; 
     
-    errorMessage = createErrorMessage([
+    errorMessage = [
       "missing timestamp",
       "missing uri",
       "missing position",
       "missing playing state"
-    ]);
+    ].join("; ");
 
     expect(() => { validateBody(invalidBody); }).toThrow(errorMessage);
-  })
+  });
 
   test("should throw appropriate invalid type errors", () => {
     invalidBody = {
@@ -34,15 +31,15 @@ describe("testing for body validation", () => {
       playing: "not a boolean"
     };
 
-    errorMessage = createErrorMessage([
+    errorMessage = [
       "timestamp is not a number",
       "uri is not string",
       "position is not a number",
       "playing is not a boolean"
-    ]);
+    ].join("; ");
 
     expect(() => { validateBody(invalidBody); }).toThrow(errorMessage);
-  })
+  });
 
   test("should throw error if timestamp isn't in milliseconds", () => {
     invalidBody = {
@@ -68,5 +65,5 @@ describe("testing for body validation", () => {
     };
 
     expect(() => { validateBody(invalidBody); }).toThrow("improper uri format");
-  })
+  });
 })
