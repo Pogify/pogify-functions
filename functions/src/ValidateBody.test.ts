@@ -26,7 +26,7 @@ describe("testing for body validation", () => {
     expect(() => { validateBody(invalidBody); }).toThrow(errorMessage);
   })
 
-  test("should throw error if body has incorrect types", () => {
+  test("should throw appropriate invalid type errors", () => {
     invalidBody = {
       timestamp: "not a number",
       uri: 1000,
@@ -59,5 +59,14 @@ describe("testing for body validation", () => {
     expect(() => { validateBody(invalidBody); }).toThrow("timestamp not in milliseconds");
   });
 
+  test("should throw error if improper uri format", () => {
+    invalidBody = {
+      timestamp: 0,
+      uri: "invalid uri",
+      position: 0,
+      playing: true,
+    };
 
+    expect(() => { validateBody(invalidBody); }).toThrow("improper uri format");
+  })
 })
