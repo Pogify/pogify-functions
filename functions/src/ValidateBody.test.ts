@@ -1,29 +1,28 @@
 import { validateBody } from "./ValidateBody";
 
 describe("testing for body validation", () => {
-  let invalidBody: { [key: string]: any } = {
-    timestamp: undefined,
-    invalidBody: undefined,
-    position: undefined,
-    playing: undefined,
-  };
-
+  let invalidBody: { [key: string]: any };
   let errorMessage: string = "";
 
   const createErrorMessage = (errorList: string[]) => {
     return errorList.join("; ");
   };
   
-  test("should throw error if body content is missing", () => {
+  test("should throw appropriate missing errors", () => {
+    /*
+      the body will never look like this,
+      but validateBody is only ever used when the body isn't empty,
+      so have to account for that by testing a non-empty object with relevant values missing
+    */
+    invalidBody = { missing: null}; 
+    
     errorMessage = createErrorMessage([
       "missing timestamp",
       "missing uri",
       "missing position",
       "missing playing state"
     ]);
-    
-    const { uri } = invalidBody;
-    console.log(uri);
+
     expect(() => { validateBody(invalidBody); }).toThrow(errorMessage);
   })
 
@@ -59,4 +58,6 @@ describe("testing for body validation", () => {
 
     expect(() => { validateBody(invalidBody); }).toThrow("timestamp not in milliseconds");
   });
+
+
 })
