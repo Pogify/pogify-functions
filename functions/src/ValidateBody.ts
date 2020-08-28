@@ -7,7 +7,7 @@ export function validateBody(body: { [key: string]: any }) {
     errArr.push("missing timestamp");
   } else if (typeof timestamp !== "number") {
     errArr.push("timestamp is not a number");
-  } else if (timestamp < 1597625975267) {
+  } else if (timestamp < 157762700400) {
     errArr.push("timestamp not in milliseconds");
   }
 
