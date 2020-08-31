@@ -256,7 +256,7 @@ export const postUpdate = functions.https.onRequest(async (req, res) => {
       const payload = validateBody(req.body);
 
       // FIXME: set and forget for now
-      axios
+      const stats = await axios
         .post(PUBSUB_URL + "/pub", payloadStringify(payload), {
           headers: {
             Authorization: PUBSUB_SECRET,
@@ -267,7 +267,11 @@ export const postUpdate = functions.https.onRequest(async (req, res) => {
         })
         .catch(console.error);
       // respond ok
-      res.sendStatus(200);
+      if (stats) {
+        res.status(200).send(stats.data);
+      } else {
+        res.sendStatus(500);
+      }
     } catch (reason) {
       // reject on malformed body
       res.status(400).send(reason);

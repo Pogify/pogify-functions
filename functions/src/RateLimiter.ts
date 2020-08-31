@@ -36,7 +36,7 @@ export const RateLimit = async (uid: string) => {
     });
   } else {
     if (count > apiLimits.count) {
-      let error = new Error("too many calls");
+      const error = new Error("too many calls");
       // @ts-expect-error || set custom to set retry-after header
       error.retryAfter =
         ~~((apiLimits.interval - (Date.now() - timestamp)) / 1000) + 1;
