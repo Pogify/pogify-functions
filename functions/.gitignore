@@ -10,3 +10,7 @@ node_modules/
 ui-debug.log
 pogify-database-firebase-adminsdk-2gk2j-3937643454.json*
 .runtimeconfig.json
+
+# vscode
+.vscode
+.vsls.json
