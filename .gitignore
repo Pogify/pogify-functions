@@ -68,3 +68,7 @@ node_modules/
 
 .runtimeconfig.json
 database.rules.json
+
+# vscode
+.vscode/settings.json
+.vsls.json
