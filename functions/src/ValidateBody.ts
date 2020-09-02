@@ -18,7 +18,7 @@ export function validateBody(body: { [key: string]: any }) {
   } else if (uri === "") {
     // do nothing if its an empty string
     // empty string indicates disconnected host
-  } else if (!uri.startsWith("spotify:track:")) {
+  } else if (!uri.startsWith("spotify:")) {
     errArr.push("improper uri format");
   }
 
