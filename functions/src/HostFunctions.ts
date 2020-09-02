@@ -10,11 +10,14 @@ import { validateBody } from "./ValidateBody";
 import fastJson from "fast-json-stringify";
 import { RateLimit } from "./RateLimiter";
 
-let __SECRET = functions.config().jwt.secret;
+const __SECRET = functions.config().jwt.secret;
 let PUBSUB_URL: string, PUBSUB_SECRET: string;
 
 // if running on the emulator ignore pubsub secrets
-if (process.env.FUNCTIONS_EMULATOR !== "true") {
+if (
+  process.env.FUNCTIONS_EMULATOR !== "true" ||
+  functions.config().pubsub.url
+) {
   PUBSUB_URL = functions.config().pubsub.url;
   PUBSUB_SECRET = functions.config().pubsub.secret;
 } else {
@@ -99,6 +102,7 @@ export const startSession = functions.https.onRequest(async (req, res) => {
       } catch (e) {
         if (e.message === "too many calls") {
           console.error(e);
+          res.setHeader("Retry-After", e.retryAfter);
           res.sendStatus(429);
           return;
         }
@@ -120,14 +124,14 @@ export const startSession = functions.https.onRequest(async (req, res) => {
     // if code snapshot returns a value and that value is older than 65 min then session is stale and can start a new session with the same id
     if (timestamp && Date.now() / 1000 - timestamp > 65 * 60) {
       // set timestamp in db
-      codeRef.set(admin.database.ServerValue.TIMESTAMP);
+      codeRef.set(admin.database.ServerValue.TIMESTAMP).catch(console.error);
       break;
     } else if (timestamp) {
       // if timestamp exists and doesn't meet the stale threshold, generate a new code.
       continue;
     } else {
       // set timestamp in db if timestamp doesn't exist
-      codeRef.set(admin.database.ServerValue.TIMESTAMP);
+      codeRef.set(admin.database.ServerValue.TIMESTAMP).catch(console.error);
       break;
     }
   }
@@ -214,6 +218,8 @@ export const postUpdate = functions.https.onRequest(async (req, res) => {
       } catch (e) {
         if (e.message === "too many calls") {
           console.error(e);
+          res.setHeader("Retry-After", e.retryAfter);
+
           res.sendStatus(429);
           return;
         }
@@ -311,6 +317,8 @@ export const refreshToken = functions.https.onRequest(async (req, res) => {
       } catch (e) {
         if (e.message === "too many calls") {
           console.error(e);
+          res.setHeader("Retry-After", e.retryAfter);
+
           res.sendStatus(429);
           return;
         }
