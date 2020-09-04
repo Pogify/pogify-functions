@@ -1,7 +1,7 @@
 export function validateBody(body: { [key: string]: any }) {
   const errArr = [];
 
-  const { timestamp, uri, position, playing } = body;
+  const { timestamp, uri, position, playing, track_window } = body;
 
   if (timestamp === undefined) {
     errArr.push("missing timestamp");
@@ -20,6 +20,21 @@ export function validateBody(body: { [key: string]: any }) {
     // empty string indicates disconnected host
   } else if (!uri.startsWith("spotify:")) {
     errArr.push("improper uri format");
+  }
+
+  if (track_window === undefined) {
+    //tslint: disable-line
+    // errArr.push("missing track_window");
+  } else if (!(track_window instanceof Array)) {
+    errArr.push("track_window is not an array");
+  } else if (!track_window.length) {
+    errArr.push("track_window has no elements");
+  } else if (
+    track_window.reduce((acc, cur) => {
+      return !cur.startsWith("spotify:") || acc;
+    }, false)
+  ) {
+    errArr.push("malformed track_window elements");
   }
 
   if (position === undefined) {
@@ -41,6 +56,7 @@ export function validateBody(body: { [key: string]: any }) {
     timestamp,
     uri,
     position,
+    track_window,
     playing,
   };
 }

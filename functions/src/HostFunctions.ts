@@ -38,6 +38,9 @@ const payloadStringify = fastJson({
     timestamp: {
       type: "number",
     },
+    track_window: {
+      type: "array",
+    },
     uri: {
       type: "string",
     },
