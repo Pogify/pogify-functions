@@ -32,8 +32,23 @@ if (
 
 type Provider = "youtube" | "twitch";
 
-export const makeRequest = functions.https.onCall(async (data, context) => {
-  const { provider, token, request, session } = data as {
+export const makeRequest = functions.https.onRequest(async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-Session-Token"
+  );
+  res.set("Access-Control-Max-Age", "7200");
+
+  if (req.method === "OPTIONS") {
+    res.sendStatus(204);
+    return;
+  } else if (req.method !== "POST") {
+    res.sendStatus(405);
+    return;
+  }
+
+  const { provider, token, request, session } = req.body as {
     provider: Provider;
     token: string;
     request: string;
@@ -64,9 +79,15 @@ export const makeRequest = functions.https.onCall(async (data, context) => {
         );
         id = twitchAuthTokenRes.data.user_id;
         break;
+      default:
+        res.status(400).send("invalid provider");
+        return;
     }
     try {
-      let res = await (function (): Promise<{ count: number; ttl: number }> {
+      let rateLimit = await (function (): Promise<{
+        count: number;
+        ttl: number;
+      }> {
         return new Promise((resolve, reject) => {
           if (redisClient) {
             redisClient.eval(
@@ -90,12 +111,15 @@ export const makeRequest = functions.https.onCall(async (data, context) => {
           }
         });
       })();
-      if (res.count > 1) {
-        return "rate_limited. retry after: " + res.ttl;
+      if (rateLimit.count > 1) {
+        res.set("Retry-After", `${rateLimit.ttl + 1}`);
+        res.sendStatus(429);
+        return;
       }
     } catch (e) {
       console.error(e);
-      return "error";
+      res.sendStatus(500);
+      return;
     }
 
     try {
@@ -114,17 +138,20 @@ export const makeRequest = functions.https.onCall(async (data, context) => {
             id: "host_" + session,
           },
           headers: {
-            authentication: "Bearer " + PUBSUB_SECRET,
+            authorization: PUBSUB_SECRET,
           },
         }
       );
-      return "ok";
+      res.sendStatus(200);
+      return;
     } catch (e) {
       console.error(e);
-      return "failed";
+      res.sendStatus(500);
+      return;
     }
   } catch (e) {
     console.error(e);
-    return "invalid token";
+    res.status(400).send("invalid token");
+    return;
   }
 });
