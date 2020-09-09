@@ -62,6 +62,7 @@ export const startSession = functions.https.onRequest(async (req, res) => {
     "Access-Control-Allow-Headers",
     "Content-Type, Authorization, X-Session-Token"
   );
+  res.set("Access-Control-Max-Age", "7200");
 
   // if incoming request is not json: reject
   if (
@@ -189,6 +190,7 @@ export const postUpdate = functions.https.onRequest(async (req, res) => {
     "Access-Control-Allow-Headers",
     "Content-Type, Authorization, X-Session-Token"
   );
+  res.set("Access-Control-Max-Age", "7200");
 
   if (req.method === "OPTIONS") {
     res.sendStatus(200);
@@ -292,6 +294,7 @@ export const refreshToken = functions.https.onRequest(async (req, res) => {
     "Access-Control-Allow-Headers",
     "Content-Type, Authorization,X-Session-Token"
   );
+  res.set("Access-Control-Max-Age", "7200");
 
   // send 200 on OPTION
   if (req.method === "OPTIONS") {
