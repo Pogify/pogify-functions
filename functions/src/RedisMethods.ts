@@ -1,9 +1,6 @@
 import * as functions from "firebase-functions";
 import redis from "redis";
 
-const apiLimitScript =
-  "local c = redis.call('incr',KEYS[1]) if (c == 1) then redis.call('expire', KEYS[1], ARGV[1]) end return {c, redis.call('ttl', KEYS[1])}";
-
 const apiLimits = {
   interval: 5 * 60,
   count: 100,
@@ -19,6 +16,8 @@ if (functions.config().redis) {
     auth_pass: functions.config().redis.pass,
   });
 }
+const apiLimitScript =
+  "local c = redis.call('incr',KEYS[1]) if (c == 1) then redis.call('expire', KEYS[1], ARGV[1]) end return {c, redis.call('ttl', KEYS[1])}";
 
 export const RateLimit = (uid: string) => {
   return new Promise((resolve, reject) => {
@@ -145,5 +144,40 @@ export function incRequest(
         ttl: 100,
       });
     }
+  });
+}
+
+const verifyAndSetScript = `
+  local t = redis.call("get", KEYS[1])
+  if (t == false) then
+    return -1
+  end
+  if (t == ARGV[1]) then
+    redis.call("set", KEYS[1], ARGV[2])
+    redis.call("expire", KEYS[1], ARGV[3])
+    return 1
+  end
+  return 0 
+  `;
+
+export function verifyAndSetNewRefreshToken(
+  sessionId: string,
+  token: string,
+  newToken: string
+) {
+  return new Promise((resolve, reject) => {
+    if (!redisClient) return resolve(1);
+
+    redisClient.eval(
+      verifyAndSetScript,
+      1,
+      "session:" + sessionId,
+      token,
+      newToken,
+      (err, res) => {
+        if (err) reject(err);
+        else resolve(res);
+      }
+    );
   });
 }

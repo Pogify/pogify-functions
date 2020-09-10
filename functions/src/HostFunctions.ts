@@ -343,33 +343,43 @@ export const refreshToken = functions.https.onRequest(async (req, res) => {
       session: string;
     };
     // check that payload is within refresh window
-    if (Date.now() / 1000 - oldPayload.exp < 30 * 60) {
-      // issue new token
-      const newToken = jwt.sign(
-        {
-          session: oldPayload.session,
-        },
-        __SECRET,
-        {
-          expiresIn: "30m",
-          subject: "session",
-        }
-      );
-
-      await RedisMethods.touchSession(oldPayload.session);
-
-      // respond with token
-      res.status(201).send({
-        token: newToken,
+    // issue new token
+    const newToken = jwt.sign(
+      {
         session: oldPayload.session,
-        expiresIn: 30 * 60,
-      });
+      },
+      __SECRET,
+      {
+        expiresIn: "30m",
+        subject: "session",
+      }
+    );
+    const newRefreshToken = nanoid(64);
+    if (req.query.refreshToken) {
+      let redisRes = await RedisMethods.verifyAndSetNewRefreshToken(
+        oldPayload.session,
+        req.query.refreshToken as string,
+        newToken
+      );
+      if (redisRes === 0) {
+        res.status(401).send("invalid refresh token");
+        return;
+      } else if (redisRes === -1) {
+        res.status(400).send("token expired");
+      }
     } else {
-      // reject if outside refresh window
-      res.status(403).send("token exceed refresh window");
+      await RedisMethods.touchSession(oldPayload.session);
     }
+
+    // respond with token
+    res.status(201).send({
+      token: newToken,
+      refreshToken: newRefreshToken,
+      session: oldPayload.session,
+      expiresIn: 30 * 60,
+    });
   } catch (e) {
     // reject if malformed, or expired jwt
-    res.sendStatus(401);
+    res.status(401).send("invalid jwt");
   }
 });
