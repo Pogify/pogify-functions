@@ -1,14 +1,12 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 
-const database = admin.database();
-
 import axios, { AxiosPromise } from "axios";
 import * as jwt from "jsonwebtoken";
-import { customAlphabet } from "nanoid";
-import { validateBody } from "./ValidateBody";
-import fastJson from "fast-json-stringify";
-import { RateLimit } from "./RateLimiter";
+import { nanoid, customAlphabet } from "nanoid";
+// import { validateBody } from "./ValidateBody";
+// import fastJson from "fast-json-stringify";
+import * as RedisMethods from "./RedisMethods";
 
 const __SECRET = functions.config().jwt.secret;
 let PUBSUB_URL: string, PUBSUB_SECRET: string;
@@ -30,28 +28,31 @@ if (
   };
 }
 
-const nanoid = customAlphabet("abcdefghijklmnopqrstuwxyz0123456789-", 5);
-const payloadStringify = fastJson({
-  title: "pubmessage",
-  type: "object",
-  properties: {
-    timestamp: {
-      type: "number",
-    },
-    track_window: {
-      type: "array",
-    },
-    uri: {
-      type: "string",
-    },
-    position: {
-      type: "number",
-    },
-    playing: {
-      type: "boolean",
-    },
-  },
-});
+const sessionCodeGenerator = customAlphabet(
+  "abcdefghijklmnopqrstuwxyz0123456789-",
+  5
+);
+// const payloadStringify = fastJson({
+//   title: "pubmessage",
+//   type: "object",
+//   properties: {
+//     timestamp: {
+//       type: "number",
+//     },
+//     track_window: {
+//       type: "array",
+//     },
+//     uri: {
+//       type: "string",
+//     },
+//     position: {
+//       type: "number",
+//     },
+//     playing: {
+//       type: "boolean",
+//     },
+//   },
+// });
 
 const auth = admin.auth();
 
@@ -102,7 +103,7 @@ export const startSession = functions.https.onRequest(async (req, res) => {
         return;
       }
       try {
-        await RateLimit(user.uid);
+        await RedisMethods.RateLimit(user.uid);
       } catch (e) {
         if (e.message === "too many calls") {
           console.error(e);
@@ -116,26 +117,13 @@ export const startSession = functions.https.onRequest(async (req, res) => {
 
   // generate session code and check for duplicates
   let sessionCode: string;
+  const refreshToken = nanoid(64);
   while (true) {
-    sessionCode = nanoid();
+    sessionCode = sessionCodeGenerator();
 
-    // check if session exists
-    const collRef = database.ref("sessionCodes");
-    const codeRef = collRef.child(sessionCode);
-    const codeSnap = await codeRef.once("value");
-    const timestamp = codeSnap.val();
-    // if snapshot doesn't return a timestamp session doesn't exist
-    // if code snapshot returns a value and that value is older than 65 min then session is stale and can start a new session with the same id
-    if (timestamp && Date.now() / 1000 - timestamp > 65 * 60) {
-      // set timestamp in db
-      codeRef.set(admin.database.ServerValue.TIMESTAMP).catch(console.error);
-      break;
-    } else if (timestamp) {
-      // if timestamp exists and doesn't meet the stale threshold, generate a new code.
-      continue;
-    } else {
-      // set timestamp in db if timestamp doesn't exist
-      codeRef.set(admin.database.ServerValue.TIMESTAMP).catch(console.error);
+    const result = await RedisMethods.newSession(sessionCode, refreshToken);
+
+    if (result) {
       break;
     }
   }
@@ -156,11 +144,12 @@ export const startSession = functions.https.onRequest(async (req, res) => {
   if (Object.keys(req.body).length) {
     try {
       // validate body of initial post
-      const payload = validateBody(req.body);
+      // const payload = validateBody(req.body);
+      const payload = req.body;
 
       // FIXME: set and forget for now
       axios
-        .post(PUBSUB_URL + "/pub", payloadStringify(payload), {
+        .post(PUBSUB_URL + "/pub", JSON.stringify(payload), {
           headers: {
             Authorization: PUBSUB_SECRET,
           },
@@ -219,7 +208,7 @@ export const postUpdate = functions.https.onRequest(async (req, res) => {
         return;
       }
       try {
-        await RateLimit(user.uid);
+        await RedisMethods.RateLimit(user.uid);
       } catch (e) {
         if (e.message === "too many calls") {
           console.error(e);
@@ -258,11 +247,12 @@ export const postUpdate = functions.https.onRequest(async (req, res) => {
 
     try {
       // validate body
-      const payload = validateBody(req.body);
+      // const payload = validateBody(req.body);
+      const payload = req.body;
 
       // FIXME: set and forget for now
       const stats = await axios
-        .post(PUBSUB_URL + "/pub", payloadStringify(payload), {
+        .post(PUBSUB_URL + "/pub", JSON.stringify(payload), {
           headers: {
             Authorization: PUBSUB_SECRET,
           },
@@ -323,7 +313,7 @@ export const refreshToken = functions.https.onRequest(async (req, res) => {
       }
       try {
         // send uid to rate limiter
-        await RateLimit(user.uid);
+        await RedisMethods.RateLimit(user.uid);
       } catch (e) {
         if (e.message === "too many calls") {
           console.error(e);
@@ -354,7 +344,6 @@ export const refreshToken = functions.https.onRequest(async (req, res) => {
       exp: number;
       session: string;
     };
-
     // check that payload is within refresh window
     if (Date.now() / 1000 - oldPayload.exp < 30 * 60) {
       // issue new token
@@ -369,17 +358,7 @@ export const refreshToken = functions.https.onRequest(async (req, res) => {
         }
       );
 
-      // touch timestamp in session registry
-      const collRef = database.ref("sessionCodes");
-      const codeRef = collRef.child(oldPayload.session);
-      const codeTime = (await codeRef.once("value")).val();
-
-      // if too early then return too early
-      if (Date.now() - codeTime < 25 * 60 * 1000) {
-        res.status(425);
-        return;
-      }
-      await codeRef.set(admin.database.ServerValue.TIMESTAMP);
+      await RedisMethods.touchSession(oldPayload.session);
 
       // respond with token
       res.status(201).send({
