@@ -75,7 +75,7 @@ export const makeRequest = functions.https.onRequest(async (req, res) => {
     }
     try {
       let rateLimit = await RedisMethods.incRequest(id);
-      if (rateLimit.count > 1) {
+      if (rateLimit.count > 2) {
         res.set("Retry-After", `${rateLimit.ttl + 1}`);
         res.sendStatus(429);
         return;
