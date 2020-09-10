@@ -165,6 +165,7 @@ export const startSession = functions.https.onRequest(async (req, res) => {
   res.status(201).send({
     token,
     session: sessionCode,
+    refreshToken,
     expiresIn: 30 * 60,
   });
 });
