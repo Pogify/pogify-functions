@@ -359,26 +359,28 @@ export const refreshToken = functions.https.onRequest(async (req, res) => {
       let redisRes = await RedisMethods.verifyAndSetNewRefreshToken(
         oldPayload.session,
         req.query.refreshToken as string,
-        newToken
+        newRefreshToken
       );
       if (redisRes === 0) {
         res.status(401).send("invalid refresh token");
         return;
       } else if (redisRes === -1) {
         res.status(400).send("token expired");
+        return;
       }
     } else {
       await RedisMethods.touchSession(oldPayload.session);
     }
 
     // respond with token
-    res.status(201).send({
+    res.status(200).send({
       token: newToken,
       refreshToken: newRefreshToken,
       session: oldPayload.session,
       expiresIn: 30 * 60,
     });
   } catch (e) {
+    console.error(e);
     // reject if malformed, or expired jwt
     res.status(401).send("invalid jwt");
   }

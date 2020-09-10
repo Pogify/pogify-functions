@@ -4,7 +4,7 @@ import redis from "redis";
 const apiLimits = {
   interval: 5 * 60,
   count: 100,
-  sessionTTL: 60 * 60,
+  sessionTTL: 5 * 60 * 60,
   requestInterval: 100,
 } as const;
 
@@ -174,6 +174,7 @@ export function verifyAndSetNewRefreshToken(
       "session:" + sessionId,
       token,
       newToken,
+      apiLimits.sessionTTL,
       (err, res) => {
         if (err) reject(err);
         else resolve(res);
