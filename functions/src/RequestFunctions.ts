@@ -93,7 +93,7 @@ export const makeRequest = functions.https.onRequest(async (req, res) => {
             redisClient.eval(
               requestLimitScript,
               1,
-              "requestId:" + id,
+              "requestRateLimit:" + id,
               (err, ret) => {
                 if (err) reject(err);
                 else
