@@ -117,12 +117,19 @@ export function incRequest(
   ttl: number;
 }> {
   return new Promise((resolve, reject) => {
+    if (!redisClient) {
+      return resolve({
+        count: -1,
+        ttl: 100,
+      });
+    }
+
     if (redisClient) {
       redisClient.eval(
         apiLimitScript,
         1,
         "requestRateLimit:" + id,
-
+        apiLimits.requestInterval,
         (err, ret) => {
           if (err) reject(err);
           else
