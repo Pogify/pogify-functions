@@ -12,10 +12,7 @@ const __SECRET = functions.config().jwt.secret;
 let PUBSUB_URL: string, PUBSUB_SECRET: string;
 
 // if running on the emulator ignore pubsub secrets
-if (
-  process.env.FUNCTIONS_EMULATOR !== "true" ||
-  functions.config().pubsub.url
-) {
+if (process.env.FUNCTIONS_EMULATOR !== "true" || functions.config().pubsub) {
   PUBSUB_URL = functions.config().pubsub.url;
   PUBSUB_SECRET = functions.config().pubsub.secret;
 } else {
