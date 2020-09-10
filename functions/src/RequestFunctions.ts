@@ -1,23 +1,13 @@
 import * as functions from "firebase-functions";
 import axios, { AxiosPromise } from "axios";
-import redis from "redis";
+import * as RedisMethods from "./RedisMethods";
 
 let PUBSUB_URL: string, PUBSUB_SECRET: string;
-let redisClient: redis.RedisClient | undefined;
-const requestLimitScript =
-  "local c = redis.call('incr',KEYS[1]) if (c ==1) then redis.call('expire', KEYS[1], 100) end return {c, redis.call('ttl', KEYS[1])}";
 
 if (
   process.env.FUNCTIONS_EMULATOR !== "true" ||
   functions.config().pubsub.url
 ) {
-  // make redis client
-  redisClient = redis.createClient({
-    auth_pass: functions.config().redis.pass,
-    host: functions.config().redis.host,
-    port: functions.config().redis.port,
-  });
-
   PUBSUB_URL = functions.config().pubsub.url;
   PUBSUB_SECRET = functions.config().pubsub.secret;
 } else {
@@ -84,33 +74,7 @@ export const makeRequest = functions.https.onRequest(async (req, res) => {
         return;
     }
     try {
-      let rateLimit = await (function (): Promise<{
-        count: number;
-        ttl: number;
-      }> {
-        return new Promise((resolve, reject) => {
-          if (redisClient) {
-            redisClient.eval(
-              requestLimitScript,
-              1,
-              "requestRateLimit:" + id,
-              (err, ret) => {
-                if (err) reject(err);
-                else
-                  resolve({
-                    count: ret[0],
-                    ttl: ret[1],
-                  });
-              }
-            );
-          } else {
-            resolve({
-              count: -1,
-              ttl: 100,
-            });
-          }
-        });
-      })();
+      let rateLimit = await RedisMethods.incRequest(id);
       if (rateLimit.count > 1) {
         res.set("Retry-After", `${rateLimit.ttl + 1}`);
         res.sendStatus(429);

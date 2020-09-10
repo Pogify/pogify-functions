@@ -1,13 +1,14 @@
 import * as functions from "firebase-functions";
 import redis from "redis";
 
-const requestLimitScript =
+const apiLimitScript =
   "local c = redis.call('incr',KEYS[1]) if (c == 1) then redis.call('expire', KEYS[1], ARGV[1]) end return {c, redis.call('ttl', KEYS[1])}";
 
 const apiLimits = {
   interval: 5 * 60,
   count: 100,
   sessionTTL: 60 * 60,
+  requestInterval: 100,
 } as const;
 
 let redisClient: redis.RedisClient | undefined;
@@ -24,7 +25,7 @@ export const RateLimit = (uid: string) => {
     if (!redisClient) return resolve();
 
     redisClient.eval(
-      requestLimitScript,
+      apiLimitScript,
       1,
       "rateLimit:" + uid,
       apiLimits.interval,
@@ -106,5 +107,36 @@ export function touchSession(sessionId: string) {
         else resolve(res);
       }
     );
+  });
+}
+
+export function incRequest(
+  id: string
+): Promise<{
+  count: number;
+  ttl: number;
+}> {
+  return new Promise((resolve, reject) => {
+    if (redisClient) {
+      redisClient.eval(
+        apiLimitScript,
+        1,
+        "requestRateLimit:" + id,
+
+        (err, ret) => {
+          if (err) reject(err);
+          else
+            resolve({
+              count: ret[0],
+              ttl: ret[1],
+            });
+        }
+      );
+    } else {
+      resolve({
+        count: -1,
+        ttl: 100,
+      });
+    }
   });
 }
